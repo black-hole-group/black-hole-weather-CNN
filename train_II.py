@@ -18,75 +18,9 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.keras.models import Model, load_model
 
 from models import create_auto_encoder
+from losses import r_squared, LossCustom
 from params import args
 from params import write_results
-
-
-def r_squared(y_true, y_pred):
-        from tensorflow.keras import backend as K
-        SS_res = K.sum(K.square(y_true-y_pred))
-        SS_tot = K.sum(K.square(y_pred - K.mean(y_pred)))
-        return (1 - SS_res/(SS_tot + K.epsilon()))
-
-def mean(y_true, y_pred):
-        from tensorflow.keras import backend as K
-        delta = K.abs(y_true - y_pred)
-        delta = K.mean(delta)
-        return delta
-
-def CustomLoss():
-        from tensorflow.keras import backend as K
-        from tensorflow.keras import losses
-
-        def LossFunc(y_true, y_pred):
-                #total   
-                l1 = losses.mean_squared_error(y_true, y_pred)
-                l1 = K.mean(l1)
-
-                #high density 2 5
-                l2 = 8*losses.mean_absolute_error(y_true[:,56:186, 35:156,:], y_pred[:,56:186, 35:156,:])
-                l2 = K.mean(l2)
-
-                #accretion_disk 2 2
-                l3 = 5*losses.mean_absolute_error(y_true[:,:22,:,:], y_pred[:,:22, :,:])
-                l3 = K.mean(l3)
-
-                #torus 5 10
-                l4 = 10*losses.mean_absolute_error(y_true[:,45:, 25:166,:], y_pred[:,45:, 25:166, :])
-                l4 = K.mean(l4)
-
-                #diffusion 5
-                l5 = 4*losses.mean_absolute_error(y_true[:,22:, 5:186,:], y_pred[:,22:, 5:186,:])
-                l5 = K.mean(l5)
-
-                loss = l1 + l2 + l3 + l4 + l5
-
-                return loss
-
-        return LossFunc
-
-
-def LossCustom(alpha, beta):
-
-        from tensorflow.keras import backend as K
-        from tensorflow.keras import losses
-
-        def loss(y_true, y_pred):
-
-           ltot = losses.mean_absolute_error(y_true, y_pred)
-           ltot = K.mean(ltot)
-
-
-           pos = K.where(y_true>0.5)
-           lh = losses.mean_absolute_error(K.gather_nd(y_true, pos), K.gather_nd(y_pred, pos))
-           lh = K.mean(lh)
-
-           pred = K.sum(y_pred, axis=1)
-           targ = K.sum(y_true, axis=1)
-
-           return ltot + alpha*lh
-
-        return loss
 
 
 def generator(n_batch):
@@ -112,7 +46,7 @@ def main():
     model.compile(optimizer=optimizer, loss=LossCustom(args.alpha, args.beta), metrics=[r_squared])
 
 
-    folder_name = "/DL/dl_coding/DL_code/Res/" + str(args.results_path) + "/"
+    folder_name = args.results_path
     os.makedirs(folder_name)
     trained_weights = folder_name + 'dl_fluids.h5'
 

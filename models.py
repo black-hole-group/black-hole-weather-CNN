@@ -1,15 +1,11 @@
 import numpy as np
-from tensorflow.python.keras.engine.training import Model
-from tensorflow.python.keras.layers.core import Reshape, Flatten, Dense
-from tensorflow.python.keras.layers.convolutional import Conv2D, UpSampling2D
-from tensorflow.python.keras.layers.core import Activation
-from tensorflow.python.keras.layers.normalization import BatchNormalization
-from tensorflow.python.keras.layers.pooling import MaxPooling2D
-from tensorflow.python.keras.layers.merge import concatenate
-from tensorflow.python.keras.layers.core import Lambda
-from tensorflow.python.keras import regularizers
-from tensorflow.python.keras import backend as K
-from tensorflow.python.keras.layers import LeakyReLU, Input
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import (
+    Reshape, Flatten, Dense, Conv2D, UpSampling2D,
+    Activation, BatchNormalization, MaxPooling2D,
+    concatenate, Lambda, LeakyReLU, Input,
+)
+from tensorflow.keras import regularizers, backend as K
 
 def conv_block(prev_layer, filters, use_bn, prefix, conv_size=(5, 5)):
     conv = Conv2D(int(filters), conv_size, padding='same', kernel_initializer="he_normal",  name=prefix + "_conv") (prev_layer)

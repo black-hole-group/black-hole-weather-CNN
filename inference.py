@@ -1,38 +1,34 @@
+import os
 import numpy as np
 
-from keras.models import Model, load_model
-from keras.utils import multi_gpu_model
+from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.utils import multi_gpu_model
 
-
-### import the architecture and the arguments
 from models import create_auto_encoder
+from losses import r_squared, CustomLoss
 from params import args
 
 
-#import the architecture 
-#and transform it to accept multi gpu 
 model = create_auto_encoder(filters=args.filters)
 model = multi_gpu_model(model, gpus=2)
+model.load_weights(args.weights_path)
 
-#the path where the .h5 is saved
-path = "/home/where_the_.h5_is"
-model.load_weights(path+"dl_fluids.h5")
+# Load the initial input frame (frame index 1784 from the test set by default)
+x_test = np.load(args.data_path)
+x_test = np.expand_dims(x_test[1784, :, :, :], axis=0)
 
-#load the input 
-x_test = np.load("/home/data/")
-x_test = np.expand_dims(x_test[1784,:,:,:], axis=0)
+# Output predictions alongside the weights file
+output_dir = os.path.dirname(os.path.abspath(args.weights_path))
 
-#loop through the data
+# Autoregressive prediction loop: each iteration feeds the previous output back in
 for i in range(100):
+    if i == 0:
+        preds = model.predict(x_test)
+        del x_test
+    else:
+        x = np.load(os.path.join(output_dir, str(i) + ".npy"))
+        preds = model.predict(x)
 
-       if i == 0:
-          preds = model.predict(x_test)
-          del x_test
-
-       else:
-          x = np.load(path + str(i) +".npy")
-          preds = model.predict(x)
-         
-       preds= np.asarray(preds)
-       np.save(path+ str(i+1) + ".npy", preds)
-       print(preds.shape)
+    preds = np.asarray(preds)
+    np.save(os.path.join(output_dir, str(i + 1) + ".npy"), preds)
+    print(preds.shape)
