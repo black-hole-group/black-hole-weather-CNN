@@ -10,11 +10,6 @@ This repository contains a deep learning model for Black Hole Weather Forecastin
 - Use training script: `bash run_train.sh`
 - For memory-efficient training with generator: `python3 train_II.py`
 
-### Testing
-- No formal test framework currently exists
-- To add tests, run: `pip install pytest` then create test files in `tests/` directory
-- Run specific tests with: `python -m pytest tests/test_name.py::test_function_name`
-
 ### Linting and Type Checking
 - Install linting tools: `pip install black flake8 mypy`
 - Format code: `black .`
@@ -56,7 +51,7 @@ This repository contains a deep learning model for Black Hole Weather Forecastin
 ## Development Setup
 1. Create virtual environment: `python -m venv venv`
 2. Activate environment: `source venv/bin/activate`
-3. Install dependencies: `pip install tensorflow numpy matplotlib scipy`
+3. Install dependencies: `pip install -r requirements.txt`
 
 ## Configuration
 - Hyperparameters in `params.py`
@@ -73,5 +68,16 @@ This repository contains a deep learning model for Black Hole Weather Forecastin
 - `run_train.sh`: Training bash script
 
 ## Version Management
-- Currently uses TensorFlow 1.8.0 as noted in README
-- No specific version pinning for other dependencies
+- Target: TensorFlow ≥ 2.4.0 (see `requirements.txt`). The original paper implementation used Keras 2.1 + TensorFlow 1.8, which explains the mixed import styles across files.
+- Deprecated APIs present in the codebase that must not be propagated to new code:
+  - `multi_gpu_model` → replace with `tf.distribute.MirroredStrategy`
+  - `model.fit_generator` → replace with `model.fit` + a `tf.data` pipeline
+  - `tensorflow.python.keras` (private) → use `tensorflow.keras`
+
+## Domain Context
+
+Critical facts for working with this codebase:
+
+- **The 5 channels are temporal, not physical.** Input/output tensors `(N, 256, 192, 5)` stack 5 consecutive density snapshots. The model advances the simulation by 5 frames per call (Δt = 197.97 M each, ≈990 M total).
+- **All data paths are hardcoded** in `train.py`, `train_II.py`, and `inference.py` (pointing to `/DL/dl_coding/DL_code/`). Update these before running.
+- **`CustomLoss` in `train.py`** encodes physics via fixed pixel regions on the 256×192 grid: the slice weights (8×, 5×, 10×, 4×) correspond to the high-density, inner/accretion disk, torus, and atmosphere regions respectively — do not modify them without consulting the paper (arXiv:2102.06242, Table 1).
