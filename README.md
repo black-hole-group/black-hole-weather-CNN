@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 
-A deep learning model for forecasting black hole weather patterns using a modified U-Net architecture. This is the implementation from the paper ["Black Hole Weather Forecasting with Deep Learning: A Pilot Study"](https://arxiv.org/abs/2102.06242) by Duarte, Nemmen & Navarro (MNRAS, in press).
+A deep learning model for forecasting black hole weather patterns using a modified U-Net architecture. This is the implementation from the paper ["Black Hole Weather Forecasting with Deep Learning: A Pilot Study"](https://arxiv.org/abs/2102.06242) by Duarte, Nemmen & Navarro (MNRAS, 2022). Accepted 2022 March 3.
 
 ## Overview
 
@@ -78,6 +78,20 @@ The model expects input data with the following specifications:
   - `x.npy`: Input features (shape: `(N, 256, 192, 5)`)
   - `y.npy`: Target labels (shape: `(N, 256, 192, 5)`)
 
+#### Data Preprocessing
+
+The raw simulation grids (400×200 cells in polar coordinates) are preprocessed before creating `x.npy`/`y.npy`:
+
+1. **Log-normalize** density to [0, 1]:
+   ```
+   ρ_NORM = (log(ρ) − log(min(ρ))) / (log(max(ρ)) − log(min(ρ)))
+   ```
+   Raw density spans 10⁻⁵ to 10¹.
+
+2. **Crop** from 400×200 → 256×192: remove 144 outer radial cells (low-density atmosphere with ρ < 10⁻³) and 8 polar cells from the poles.
+
+3. **Stack** 5 consecutive density snapshots per sample (Δt = 197.97 M between frames). **The 5 channels are temporal, not physical variables.** The target `y` contains the 5 frames immediately following the input block, so each prediction advances the simulation by ≈990 M.
+
 ### Configuration
 
 Edit `params.py` to customize training hyperparameters:
@@ -87,8 +101,30 @@ Edit `params.py` to customize training hyperparameters:
 --batch_size: Mini-batch size (default: 64)
 --filters: Number of filters in first layer (default: 32)
 --results_path: Path to save training results
---alpha, --beta, --delta, --gamma: Loss function parameters (default: 0.1)
+--alpha, --beta, --delta, --gamma: Loss region weights (default: 0.1)
 ```
+
+**To reproduce paper results**, use the optimal hyperparameters from Table 1 of the paper:
+
+| Parameter | Value | Region |
+|-----------|-------|--------|
+| α | 8 | High-density region |
+| β | 5 | Inner/accretion disk |
+| γ | 10 | Torus |
+| δ | 4 | Atmosphere |
+| Learning rate | 5×10⁻⁴ | (hardcoded in `train.py`) |
+
+The defaults in `params.py` (0.1) are placeholders; pass the values above via CLI flags to reproduce the paper.
+
+### Training Experiments
+
+The paper describes two experimental setups:
+
+- **one-sim** (`train.py`): Trained on a single long simulation (PNSS3, 2,678 frames) with a 70/10/20 temporal split. Uses `CustomLoss` — a physics-informed hierarchical loss with 5 regional components: `L = L_total + 8·L_HD + 5·L_IN + 10·L_torus + 4·L_atm`.
+
+- **multi-sim** (`train_II.py`): Trained on 8 simulations (5,015 frames total), withholding PL0SS3 for out-of-distribution generalization testing. Uses the simpler 2-term `LossCustom(alpha, beta)`.
+
+Simulation naming convention: `[PN/PL][0/2][SS/ST][1/3]` — angular momentum profile (PN=Penna, PL=power-law), exponent, viscosity prescription (SS=Shakura-Sunyaev, ST=Stone), and α×10.
 
 ### Inference
 
@@ -99,6 +135,11 @@ python3 inference.py
 ```
 
 Note: Update the hardcoded paths in `inference.py` to point to your model weights and test data.
+
+The model supports two forecast modes:
+
+- **Direct (nowcasting)**: Feed one density block, predict the immediately following 5 frames. Used for one-step accuracy evaluation.
+- **Iterative (forecasting)**: Feed predictions back as inputs for autoregressive multi-step rollout. `inference.py` runs 100 iterations, advancing the simulation by ~10⁵ GM/c³. Known limitation: the one-sim model drifts after ~8×10⁴ GM/c³ due to artificial mass injection.
 
 ## Model Architecture
 
@@ -158,12 +199,11 @@ model = load_model("/path/to/dl_fluids.h5")
 If you use this code in your research, please cite our paper:
 
 ```bibtex
-@article{duarte2021black,
+@article{duarte2022black,
   title={Black Hole Weather Forecasting with Deep Learning: A Pilot Study},
-  author={Duarte, Mayron and Nemmen, Rodrigo and Navarro, Joao},
+  author={Duarte, Roberta and Nemmen, Rodrigo and Navarro, Joao},
   journal={Monthly Notices of the Royal Astronomical Society},
-  year={2021},
-  note={In press},
+  year={2022},
   url={https://arxiv.org/abs/2102.06242}
 }
 ```
