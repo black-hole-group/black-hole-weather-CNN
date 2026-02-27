@@ -55,13 +55,13 @@ To train the model:
 bash run_train.sh
 
 # Or with custom parameters
-python3 train.py --batch_size=16 --results_path=Test/
+python3 src/train.py --batch_size=16 --results_path=Test/
 ```
 
 For memory-efficient training with a data generator:
 
 ```bash
-python3 train_II.py --batch_size=32 --results_path=Test/
+python3 src/train_II.py --batch_size=32 --results_path=Test/
 ```
 
 ### Input Data Format
@@ -94,7 +94,7 @@ The raw simulation grids (400×200 cells in polar coordinates) are preprocessed 
 
 ### Configuration
 
-Edit `params.py` to customize training hyperparameters:
+Edit `src/params.py` to customize training hyperparameters:
 
 ```python
 --epochs: Number of training epochs (default: 100)
@@ -112,7 +112,7 @@ Edit `params.py` to customize training hyperparameters:
 | β | 5 | Inner/accretion disk |
 | γ | 10 | Torus |
 | δ | 4 | Atmosphere |
-| Learning rate | 5×10⁻⁴ | (hardcoded in `train.py`) |
+| Learning rate | 5×10⁻⁴ | (hardcoded in `src/train.py`) |
 
 The defaults in `params.py` (0.1) are placeholders; pass the values above via CLI flags to reproduce the paper.
 
@@ -120,9 +120,9 @@ The defaults in `params.py` (0.1) are placeholders; pass the values above via CL
 
 The paper describes two experimental setups:
 
-- **one-sim** (`train.py`): Trained on a single long simulation (PNSS3, 2,678 frames) with a 70/10/20 temporal split. Uses `CustomLoss` — a physics-informed hierarchical loss with 5 regional components: `L = L_total + 8·L_HD + 5·L_IN + 10·L_torus + 4·L_atm`.
+- **one-sim** (`src/train.py`): Trained on a single long simulation (PNSS3, 2,678 frames) with a 70/10/20 temporal split. Uses `CustomLoss` — a physics-informed hierarchical loss with 5 regional components: `L = L_total + 8·L_HD + 5·L_IN + 10·L_torus + 4·L_atm`.
 
-- **multi-sim** (`train_II.py`): Trained on 8 simulations (5,015 frames total), withholding PL0SS3 for out-of-distribution generalization testing. Uses the simpler 2-term `LossCustom(alpha, beta)`.
+- **multi-sim** (`src/train_II.py`): Trained on 8 simulations (5,015 frames total), withholding PL0SS3 for out-of-distribution generalization testing. Uses the simpler 2-term `LossCustom(alpha, beta)`.
 
 Simulation naming convention: `[PN/PL][0/2][SS/ST][1/3]` — angular momentum profile (PN=Penna, PL=power-law), exponent, viscosity prescription (SS=Shakura-Sunyaev, ST=Stone), and α×10.
 
@@ -131,10 +131,10 @@ Simulation naming convention: `[PN/PL][0/2][SS/ST][1/3]` — angular momentum pr
 To make predictions using a trained model:
 
 ```python
-python3 inference.py
+python3 src/inference.py
 ```
 
-Note: Update the hardcoded paths in `inference.py` to point to your model weights and test data.
+Note: Update the hardcoded paths in `src/inference.py` to point to your model weights and test data.
 
 The model supports two forecast modes:
 
@@ -169,15 +169,17 @@ model = load_model("/path/to/dl_fluids.h5")
 
 ```
 .
-├── models.py          # U-Net model architecture
-├── train.py           # Standard training script
-├── train_II.py        # Generator-based training (memory efficient)
-├── inference.py       # Prediction/inference script
-├── params.py          # Hyperparameter configuration
+├── src/
+│   ├── models.py      # U-Net model architecture
+│   ├── train.py       # Standard training script
+│   ├── train_II.py    # Generator-based training (memory efficient)
+│   ├── inference.py   # Prediction/inference script
+│   ├── params.py      # Hyperparameter configuration
+│   └── losses.py      # Custom loss functions
 ├── run_train.sh       # Shell script for training
 ├── requirements.txt   # Python dependencies
-├── LICENSE           # MIT License
-└── README.md         # This file
+├── LICENSE            # MIT License
+└── README.md          # This file
 ```
 
 ## Hardware Requirements
@@ -190,7 +192,7 @@ model = load_model("/path/to/dl_fluids.h5")
 
 ### Common Issues
 
-1. **Path Errors**: Update hardcoded paths in `train.py`, `train_II.py`, and `inference.py` to match your system
+1. **Path Errors**: Update hardcoded paths in `src/train.py`, `src/train_II.py`, and `src/inference.py` to match your system
 2. **Memory Errors**: Reduce `batch_size` or use `train_II.py` with the generator
 3. **GPU Not Found**: Ensure CUDA and cuDNN are properly installed
 
