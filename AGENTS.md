@@ -6,9 +6,9 @@ This repository contains a deep learning model for Black Hole Weather Forecastin
 ## Build/Lint/Test Commands
 
 ### Training
-- Train model: `python3 train.py --batch_size=16 --results_path=Test/`
+- Train model: `python3 src/train.py --batch_size=16 --results_path=Test/`
 - Use training script: `bash run_train.sh`
-- For memory-efficient training with generator: `python3 train_II.py`
+- For memory-efficient training with generator: `python3 src/train_II.py`
 
 ### Linting and Type Checking
 - Install linting tools: `pip install black flake8 mypy`
@@ -54,17 +54,18 @@ This repository contains a deep learning model for Black Hole Weather Forecastin
 3. Install dependencies: `pip install -r requirements.txt`
 
 ## Configuration
-- Hyperparameters in `params.py`
-- Model architecture in `models.py`
-- Training logic in `train.py` and `train_II.py`
-- Inference in `inference.py`
+- Hyperparameters in `src/params.py`
+- Model architecture in `src/models.py`
+- Training logic in `src/train.py` and `src/train_II.py`
+- Inference in `src/inference.py`
 
 ## Directory Structure
-- `models.py`: Model architecture definition
-- `train.py`: Training without generator
-- `train_II.py`: Training with generator (memory efficient)
-- `inference.py`: Prediction/evaluation scripts
-- `params.py`: Hyperparameter configuration
+- `src/models.py`: Model architecture definition
+- `src/train.py`: Training without generator
+- `src/train_II.py`: Training with generator (memory efficient)
+- `src/inference.py`: Prediction/evaluation scripts
+- `src/params.py`: Hyperparameter configuration
+- `src/losses.py`: Custom loss functions
 - `run_train.sh`: Training bash script
 
 ## Version Management
@@ -79,5 +80,5 @@ This repository contains a deep learning model for Black Hole Weather Forecastin
 Critical facts for working with this codebase:
 
 - **The 5 channels are temporal, not physical.** Input/output tensors `(N, 256, 192, 5)` stack 5 consecutive density snapshots. The model advances the simulation by 5 frames per call (Δt = 197.97 M each, ≈990 M total).
-- **All data paths are hardcoded** in `train.py`, `train_II.py`, and `inference.py` (pointing to `/DL/dl_coding/DL_code/`). Update these before running.
-- **`CustomLoss` in `train.py`** encodes physics via fixed pixel regions on the 256×192 grid: the slice weights (8×, 5×, 10×, 4×) correspond to the high-density, inner/accretion disk, torus, and atmosphere regions respectively — do not modify them without consulting the paper (arXiv:2102.06242, Table 1).
+- **All data paths are hardcoded** in `src/train.py`, `src/train_II.py`, and `src/inference.py` (pointing to `/DL/dl_coding/DL_code/`). Update these before running.
+- **`CustomLoss` in `src/train.py`** encodes physics via fixed pixel regions on the 256×192 grid: the slice weights (8×, 5×, 10×, 4×) correspond to the high-density, inner/accretion disk, torus, and atmosphere regions respectively — do not modify them without consulting the paper (arXiv:2102.06242, Table 1).
